@@ -4,12 +4,9 @@ import com.marekjeszka.model.BookEntity
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class BooksService(implicit executionContext: ExecutionContext) {
-  def getBooks: Future[Seq[BookEntity]] = Future {
-    IndexedSeq.newBuilder.+=(BookEntity(None, "", "")).result()
-  }
+class BooksService(databaseService: DatabaseService)(implicit executionContext: ExecutionContext) {
 
-  def getBookById(id: Long): Future[BookEntity] = Future {
-    BookEntity(isbn = "0076092039389", title = "Thinking in Java (4th Edition)")
-  }
+  def getBooks: Future[Seq[BookEntity]] = databaseService.getBooks
+
+  def getBookById(id: Long): Future[Option[BookEntity]] = databaseService.getBookById(id)
 }

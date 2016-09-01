@@ -1,38 +1,47 @@
-package com.marekjeszka
+package com.marekjeszka.routes
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.marekjeszka.model.BookEntity
-import com.marekjeszka.routes.BooksServiceRoutes
 import com.marekjeszka.services.BooksService
 import de.heikoseeberger.akkahttpcirce.CirceSupport
+import io.circe.generic.auto._
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
-import io.circe.generic.auto._
+
+import scala.concurrent.Future
 
 class BooksRouterSpec extends WordSpec
   with Matchers
   with ScalatestRouteTest
+  with MockFactory
   with CirceSupport
   with ScalaFutures {
 
-  implicit val ec = system.dispatcher
-
-  val routes = new BooksServiceRoutes(new BooksService()).route
+  trait Context {
+    class NoArgsBookService extends BooksService(null)
+    val booksService = mock[NoArgsBookService]
+    val routes = new BooksServiceRoutes(booksService).route
+    val testBook = Future.successful {
+      Option(BookEntity(isbn = "0076092039389", title = "Thinking in Java (4th Edition)"))
+    }
+  }
 
   "BooksService routes" should {
-    "return all books" in {
+    "return all books" in new Context {
       Get("/books") ~> routes ~> check {
         responseAs[Seq[String]].isEmpty should be(true)
       }
     }
   }
 
-  val testBook = BookEntity(isbn = "0785342336788", title = "Java Puzzlers: Traps, Pitfalls, and Corner Cases")
 
   it should {
-    "return one book" in {
+    "return one book" in new Context  {
+      (booksService.getBookById _).expects(101L).returning(testBook)
+
       Get("/books/101") ~> routes ~> check {
-        responseAs[BookEntity] should be(testBook)
+        responseAs[BookEntity] should be(testBook.futureValue.get)
       }
     }
   }
