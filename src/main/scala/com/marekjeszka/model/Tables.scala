@@ -1,6 +1,7 @@
 package com.marekjeszka.model
 
 import slick.driver.H2Driver.api._
+import slick.lifted.ForeignKeyQuery
 
 class Book(tag: Tag)
   extends Table[BookEntity](tag, "BOOK") {
@@ -12,16 +13,15 @@ class Book(tag: Tag)
   def * = (id, isbn, title) <> ((BookEntity.apply _).tupled, BookEntity.unapply)
 }
 
-//class Filename(tag: Tag)
-//  extends Table[(Long, String, Long)](tag, "FILENAME") {
-//
-//  def id: Rep[Long] = column[Long]("FILENAME_ID", O.PrimaryKey)
-//  def filename: Rep[String] = column[String]("FILENAME")
-//  def bookId: Rep[Long] = column[Long]("BOOK_ID")
-//
-//  def * : ProvenShape[(Long, String, Long)] =
-//    (id, filename, bookId)
-//
-//  def book: ForeignKeyQuery[Book, BookEntity] =
-//    foreignKey("BOOK_FK", bookId, TableQuery[Book])(_.id)
-//}
+class File(tag: Tag)
+  extends Table[FileEntity](tag, "FILE") {
+
+  def id = column[Option[Long]]("FILENAME_ID", O.PrimaryKey, O.AutoInc)
+  def name = column[String]("NAME")
+  def bookId = column[Long]("BOOK_ID")
+
+  def * = (id, name, bookId) <> ((FileEntity.apply _).tupled, FileEntity.unapply)
+
+  def book: ForeignKeyQuery[Book, BookEntity] =
+    foreignKey("BOOK_FK", bookId, TableQuery[Book])(_.id.get)
+}

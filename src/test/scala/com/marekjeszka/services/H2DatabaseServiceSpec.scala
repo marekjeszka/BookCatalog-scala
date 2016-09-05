@@ -1,14 +1,16 @@
 package com.marekjeszka.services
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.marekjeszka.model.BookEntity
+import com.marekjeszka.model.{BookEntity, FileEntity}
 import de.heikoseeberger.akkahttpcirce.CirceSupport
+import org.h2.jdbc.JdbcSQLException
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 import slick.driver.H2Driver.api._
 
-import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{Await, Future}
 import scala.util.Random
 
 class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with CirceSupport with ScalaFutures with BeforeAndAfter {
@@ -64,6 +66,27 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
       }.map(h2DB.insertBook)
 
       h2DB.getBooks.futureValue.size shouldBe 7 // should be 5
+    }
+  }
+
+  it should {
+    "query all files" in {
+      h2DB.insertBook(BookEntity(Some(1L), Random.nextString(10), Random.nextString(10))).futureValue
+      val count = 2
+      (1 to count).map { _ =>
+        FileEntity(Some(Random.nextLong()), Random.nextString(10), 1L)
+      }.map(f => h2DB.insertFile(f))
+
+      h2DB.getFiles.futureValue.size shouldBe 2
+    }
+  }
+
+  it should {
+    "throw exception when inserting file without a reference book" in {
+      val thrown = intercept[JdbcSQLException] {
+        Await.result(h2DB.insertFile(FileEntity(Some(1L), Random.nextString(10), 102L)), FiniteDuration(1, "s"))
+      }
+      thrown.getMessage should startWith("Referential integrity constraint violation")
     }
   }
 }
