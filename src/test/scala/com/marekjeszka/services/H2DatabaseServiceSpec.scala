@@ -32,7 +32,7 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
     "create schema" in {
       val tables = h2DB.getTables
 
-      tables.futureValue.size shouldBe 1
+      tables.futureValue.size shouldBe 2
     }
   }
 
