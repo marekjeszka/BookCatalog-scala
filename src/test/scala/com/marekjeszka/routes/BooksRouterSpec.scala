@@ -45,20 +45,4 @@ class BooksRouterSpec extends WordSpec
       }
     }
   }
-
-  //  it should {
-  //    "return a greeting for GET requests to the root path" in {
-  //      Get("/") ~> routes ~> check {
-  //        responseAs[String] should include("Say hello")
-  //      }
-  //    }
-  //  }
-  //
-  //  it should {
-  //    "leave GET requests to other paths unhandled" in {
-  //      Get("/kermit") ~> routes ~> check {
-  //        handled shouldEqual false
-  //      }
-  //    }
-  //  }
 }

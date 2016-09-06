@@ -6,6 +6,7 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.marekjeszka.services.{BooksService, H2DatabaseService}
+import slick.driver.H2Driver.api._
 
 import scala.concurrent.duration._
 
@@ -16,7 +17,9 @@ object Boot extends App {
   implicit val materializer = ActorMaterializer()
 
 
-  val databaseService = new H2DatabaseService()
+  val databaseService = new H2DatabaseService
+  databaseService.db = Database.forConfig("h2mem1")
+  databaseService.createSchema()
   val booksService = new BooksService(databaseService)
   val restController = new RestController(booksService)
 

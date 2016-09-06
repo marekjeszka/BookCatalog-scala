@@ -1,7 +1,7 @@
 package com.marekjeszka.services
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.marekjeszka.model.{BookEntity, FileEntity}
+import com.marekjeszka.model.{BookEntity, CategoryEntity, FileEntity}
 import de.heikoseeberger.akkahttpcirce.CirceSupport
 import org.h2.jdbc.JdbcSQLException
 import org.scalatest.concurrent.ScalaFutures
@@ -17,22 +17,21 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds))
 
   val h2DB: H2DatabaseService = new H2DatabaseService
-  var db: Database = _
 
   before {
-    db = Database.forConfig("h2mem1")
-    h2DB.createSchema(db)
+    h2DB.db = Database.forConfig("h2mem1")
+    h2DB.createSchema().futureValue
   }
 
   after {
-    db.shutdown.futureValue
+    h2DB.db.shutdown.futureValue
   }
 
   "H2 database" should {
     "create schema" in {
       val tables = h2DB.getTables
 
-      tables.futureValue.size shouldBe 2
+      tables.futureValue.size shouldBe 4
     }
   }
 
@@ -63,9 +62,9 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
       val count = 5
       (1 to count).map { _ =>
         BookEntity(Some(Random.nextLong()), Random.nextString(10), Random.nextString(10))
-      }.map(h2DB.insertBook)
+      }.map(h2DB.insertBook).foreach(r => r.futureValue)
 
-      h2DB.getBooks.futureValue.size shouldBe 7 // should be 5
+      h2DB.getBooks.futureValue.size shouldBe 5
     }
   }
 
@@ -87,6 +86,30 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
         Await.result(h2DB.insertFile(FileEntity(Some(1L), Random.nextString(10), 102L)), FiniteDuration(1, "s"))
       }
       thrown.getMessage should startWith("Referential integrity constraint violation")
+    }
+  }
+
+  it should {
+    "query all categories" in {
+      h2DB.insertCategory(CategoryEntity(Some(1L), Random.nextString(10))).futureValue
+
+      h2DB.getCategories.futureValue.size shouldBe 1
+    }
+  }
+
+  it should {
+    "query mappings between books and categories" in {
+      val cat1: CategoryEntity = CategoryEntity(Some(1L), Random.nextString(10))
+      val cat2: CategoryEntity = CategoryEntity(Some(2L), Random.nextString(10))
+      h2DB.insertCategory(cat1).futureValue
+      h2DB.insertCategory(cat2).futureValue
+      val book: BookEntity = BookEntity(Some(1L), Random.nextString(10), Random.nextString(10))
+      h2DB.insertBook(book).futureValue
+      h2DB.insertBookCategoryMapping(1L, 1L).futureValue
+      h2DB.insertBookCategoryMapping(1L, 2L).futureValue
+
+      val categories = h2DB.getCategoriesForBook(book).futureValue
+      categories should contain only(cat1, cat2)
     }
   }
 }
