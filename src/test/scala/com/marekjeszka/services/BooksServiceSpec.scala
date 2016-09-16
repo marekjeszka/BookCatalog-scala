@@ -25,10 +25,9 @@ class BooksServiceSpec extends WordSpec
       (databaseService.getBookById _).expects(1L).returning(futureBook)
       (databaseService.updateBook _).expects(*, *)
         .returning(Future.successful(Some(updatedBook)))
-        .anyNumberOfTimes // https://github.com/paulbutcher/ScalaMock/issues/101
 
       booksService.updateBook(updatedBook.id.get, BookEntityUpdate(Some(newIsbn), Some(newTitle)))
-//        .shouldBe(updatedBook)
+        .futureValue.get.shouldBe(updatedBook)
     }
   }
 
