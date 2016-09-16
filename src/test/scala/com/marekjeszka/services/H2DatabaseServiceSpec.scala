@@ -18,6 +18,8 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
 
   val h2DB: H2DatabaseService = new H2DatabaseService
 
+  private val aBook: BookEntity = BookEntity(Some(1L), "0076092039389", "Thinking in Java (4th Edition)")
+
   before {
     h2DB.db = Database.forConfig("h2mem1")
     h2DB.createSchema().futureValue
@@ -37,23 +39,21 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
 
   it should {
     "query a book by title" in {
-      val newBook: BookEntity = BookEntity(Some(1L), "0076092039389", "Thinking in Java (4th Edition)")
-      h2DB.insertBook(newBook).futureValue
+      h2DB.insertBook(aBook).futureValue
 
       val book: Future[Option[BookEntity]] = h2DB.getBookByTitleLike("%Thinking%")
 
-      book.futureValue.get shouldBe newBook
+      book.futureValue.get shouldBe aBook
     }
   }
 
   it should {
     "query inserted book by id" in {
-      val newBook: BookEntity = BookEntity(Some(1L), "0076092039389", "Thinking in Java (4th Edition)")
-      h2DB.insertBook(newBook).futureValue
+      h2DB.insertBook(aBook).futureValue
 
       val book: Future[Option[BookEntity]] = h2DB.getBookById(1L)
 
-      book.futureValue.get shouldBe newBook
+      book.futureValue.get shouldBe aBook
     }
   }
 
@@ -68,13 +68,25 @@ class H2DatabaseServiceSpec extends WordSpec with Matchers with ScalatestRouteTe
     }
   }
 
+
+  it should {
+    "update a book" in {
+      h2DB.insertBook(aBook).futureValue
+      val newIsbn: String = "1234"
+
+      h2DB.updateBook(aBook.id.get, BookEntity(aBook.id, newIsbn, aBook.title)).futureValue
+
+      h2DB.getBookById(1L).futureValue.get.isbn shouldBe newIsbn
+    }
+  }
+
   it should {
     "query all files" in {
       h2DB.insertBook(BookEntity(Some(1L), Random.nextString(10), Random.nextString(10))).futureValue
       val count = 2
       (1 to count).map { _ =>
         FileEntity(Some(Random.nextLong()), Random.nextString(10), 1L)
-      }.map(f => h2DB.insertFile(f))
+      }.map(f => h2DB.insertFile(f)).foreach(r => r.futureValue)
 
       h2DB.getFiles.futureValue.size shouldBe 2
     }

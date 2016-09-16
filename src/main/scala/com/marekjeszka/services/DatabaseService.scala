@@ -16,6 +16,7 @@ trait DatabaseService {
   def getBookById(id: Long): Future[Option[BookEntity]]
   def getBookByTitleLike(title: String): Future[Option[BookEntity]]
   def insertBook(book: BookEntity): Future[Int]
+  def updateBook(id: Long, updatedBook: BookEntity): Future[Option[BookEntity]]
 
   def getFiles: Future[Seq[FileEntity]]
   def insertFile(file: FileEntity): Future[Int]
@@ -43,6 +44,9 @@ class H2DatabaseService() extends DatabaseService {
     db.run(Tables.books.filter(_.title like title).result.headOption)
 
   override def insertBook(book: BookEntity): Future[Int] = db.run(Tables.books += book)
+
+  override def updateBook(id: Long, updatedBook: BookEntity): Future[Option[BookEntity]] =
+    db.run(Tables.books.filter(_.id === id).update(updatedBook)).map(_ => Some(updatedBook))
 
   override def getFiles: Future[Seq[FileEntity]] = db.run(Tables.files.result)
 
